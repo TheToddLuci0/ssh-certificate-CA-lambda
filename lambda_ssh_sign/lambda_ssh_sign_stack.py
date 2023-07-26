@@ -3,6 +3,7 @@ from aws_cdk import (
     Stack,
     # aws_sqs as sqs,
     CfnParameter,
+    Duration,
     aws_secretsmanager as secretsmanager,
     aws_lambda as lambda_,
     aws_lambda_python_alpha as pylambda
@@ -16,6 +17,7 @@ class LambdaSshSignStack(Stack):
 
         # The code that defines your stack goes here
         arn = CfnParameter(self, "secret-arn", type='String')
+        timer = self.node.try_get_context('max_token_lifetime')
 
         keys = secretsmanager.Secret.from_secret_complete_arn(self, id="CAKeysSecret", secret_complete_arn=arn.value_as_string)
         
@@ -28,7 +30,11 @@ class LambdaSshSignStack(Stack):
         func = pylambda.PythonFunction(self, "SSH-Key-Signer", entry="./lambda_source/", 
             layers=[layer] ,runtime=lambda_.Runtime.PYTHON_3_11, index="signinglambda.py", 
             params_and_secrets=params_and_secrets, 
-            environment={"SecretARN": arn.value_as_string}
+            environment={
+                "SecretARN": arn.value_as_string,
+                "MAX_VALID_MINUTES": str(timer)
+                },
+            timeout=Duration.seconds(30)
             )
 
         # Perms

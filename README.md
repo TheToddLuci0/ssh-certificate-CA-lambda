@@ -1,58 +1,44 @@
+# What the hell is this?
+SSH is great. Using keys is great. Managing ssh keys is not.
 
-# Welcome to your CDK Python project!
+Fortunatly, SSH has a handy little tool to let us bypass that problem: certificate auth.
 
-This is a blank project for CDK development with Python.
+It works like this: you install a certificate on your host and tell SSH that anything signed by that cert is legit, let 'em in.
+That just leaves one problem: how to sign the cert? That's where this comes in.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## Deploying
 
-This project is set up like a standard Python project.  The initialization
-process also creates a virtualenv within this project, stored under the `.venv`
-directory.  To create the virtualenv it assumes that there is a `python3`
-(or `python` for Windows) executable in your path with access to the `venv`
-package. If for any reason the automatic creation of the virtualenv fails,
-you can create the virtualenv manually.
+Note: you need to deploy a secret manager secret with the CA keys in it first.
 
-To manually create a virtualenv on MacOS and Linux:
-
-```
-$ python3 -m venv .venv
-```
-
-After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
-
-```
-$ source .venv/bin/activate
+```json
+{
+    "public_key": "asdasdadasdasdasd",
+    "private_key": "-------BEGIN PRIVATE KEY---------- asdwqdas...."
+}
 ```
 
-If you are a Windows platform, you would activate the virtualenv like this:
+Once you have that it's as simple as running `cdk deploy --parameters secretarn=arn:aws:....`
 
-```
-% .venv\Scripts\activate.bat
-```
+Note: The parameter is only required the first time you deploy. After that, you can apply updates with just `cdk deploy`
 
-Once the virtualenv is activated, you can install the required dependencies.
+## Invoking
+Call `invoke` via your favorite AWS lambda interface, with the following event data:
 
-```
-$ pip install -r requirements.txt
-```
+```json
 
-At this point you can now synthesize the CloudFormation template for this code.
-
-```
-$ cdk synth
+{
+    "length": 15, // How long the cert should be valid for. If you pass a value larger than the lambda max, that will be used
+    "username": "bob@corp.com", // Who to indicate the cert is for TODO: replace this with non-user supplied info
+    "pubkey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC2iBW+s0Aadn/ncA9fUZUcQha7FEJJ0/892MW3Wy9bXTrMNMPf5sLsLIp+K3OO7QP+ynnCSZhTE+6F37wtYGpsPnsHf9tpc8aZKCd/eUCwnTCiWlTdEvo4AyL+hlqkpedGyBLbI6NMt/l3PEtqSirUt7pCmb9+Fg+VTKII1UUU8Rl4MGJAtHtltTwvtarJDTbhaoorlJYP4CEAR6z9MBaJXo09FffJQDhcOOAhawUHVRXdnD9aaLYpIc2QXnVx8k+i2aO95IWyd+sVUmEoHmdFoSXf6LR3TGeeoYfSwotLSOogK+MBfTWbq+5mm43TLhB2tr6BQEQnkMAJcZFb9T+LqM67pH0S3jBs2PlnMXlyCKHxrJBv6Bkjl1lWQ2BEj5UuFDQkqr5gXwXCsubpg6pG0g65vhohb7L2pOe2zOw++3jQDmDFS/22rnoxG2X2O0o+3uNTK1bzkS/2PzwMs2VgpY/iZTNFnSOxs7paSn+yaJJQQ87MwF3Gn1kFpC7qgSs= kali@kali" // Do I really need to explain this one?
+}
 ```
 
-To add additional dependencies, for example other CDK libraries, just add
-them to your `setup.py` file and rerun the `pip install -r requirements.txt`
-command.
+CLI example:
+```bash
+aws lambda invoke --function-name arn:aws:lambda:us-east-1:XXXXXXXX:function:LambdaSshSignStack-SSHKeySigner8 --payload file://payload.json test.out
+```
 
-## Useful commands
-
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
-
-Enjoy!
+# TODO
+- [ ] Write a client for the normies
+- [ ] Determine usernames based on the IAM identity of the caller, rather than user-supplied
+- [ ] Document server setup
