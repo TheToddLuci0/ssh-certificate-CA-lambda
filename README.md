@@ -22,6 +22,11 @@ Once you have that it's as simple as running `cdk deploy --parameters secretarn=
 Note: The parameter is only required the first time you deploy. After that, you can apply updates with just `cdk deploy`
 
 ## Invoking
+We now have a client!
+
+[![asciicast](https://asciinema.org/a/ZEtn43ImOdvQpW6wQHF5jXUva.svg)](https://asciinema.org/a/ZEtn43ImOdvQpW6wQHF5jXUva)
+
+### Manual
 Call `invoke` via your favorite AWS lambda interface, with the following event data:
 
 ```json
@@ -39,6 +44,6 @@ aws lambda invoke --function-name arn:aws:lambda:us-east-1:XXXXXXXX:function:Lam
 ```
 
 # TODO
-- [ ] Write a client for the normies
-- [ ] Determine usernames based on the IAM identity of the caller, rather than user-supplied
+- [x] Write a client for the normies
+- [x] Determine usernames based on the IAM identity of the caller, rather than user-supplied
 - [ ] Document server setup

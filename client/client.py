@@ -26,6 +26,10 @@ def main(config):
         'username': os.getlogin()
     }
     response = _lambda.invoke(FunctionName=config['DEFAULT']['lambda_arn'], Payload=json.dumps(payload))
+    if response['StatusCode'] >=300:
+        print(response['Payload'].read())
+        os.exit(11)
+
     cert = response['Payload'].read()
     cert_file = os.path.expanduser(config['DEFAULT']['identity_file']).replace('.pub', '-cert.pub')
     if not cert_file.endswith('-cert.pub'):
