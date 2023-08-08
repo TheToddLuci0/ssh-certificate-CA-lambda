@@ -17,6 +17,7 @@ secrets_extension_endpoint = "http://localhost:" + \
 MAX_LEN = int(os.environ.get('MAX_VALID_MINUTES', 1440)) # 24 hrs
 TEST_KEY = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC2iBW+s0Aadn/ncA9fUZUcQha7FEJJ0/892MW3Wy9bXTrMNMPf5sLsLIp+K3OO7QP+ynnCSZhTE+6F37wtYGpsPnsHf9tpc8aZKCd/eUCwnTCiWlTdEvo4AyL+hlqkpedGyBLbI6NMt/l3PEtqSirUt7pCmb9+Fg+VTKII1UUU8Rl4MGJAtHtltTwvtarJDTbhaoorlJYP4CEAR6z9MBaJXo09FffJQDhcOOAhawUHVRXdnD9aaLYpIc2QXnVx8k+i2aO95IWyd+sVUmEoHmdFoSXf6LR3TGeeoYfSwotLSOogK+MBfTWbq+5mm43TLhB2tr6BQEQnkMAJcZFb9T+LqM67pH0S3jBs2PlnMXlyCKHxrJBv6Bkjl1lWQ2BEj5UuFDQkqr5gXwXCsubpg6pG0g65vhohb7L2pOe2zOw++3jQDmDFS/22rnoxG2X2O0o+3uNTK1bzkS/2PzwMs2VgpY/iZTNFnSOxs7paSn+yaJJQQ87MwF3Gn1kFpC7qgSs= kali@kali"
 SHARED_USER = os.environ.get('SHARED_USER_ID')
+USE_FRIENDLY = bool(os.environ.get('USE_FRIENDLY_KEY_ID', False))
 
 def handler(event, context):
     print(event, context)
@@ -28,10 +29,18 @@ def handler(event, context):
     else:
         duration = MAX_LEN    
 
+    # Use STS to get authoritive data on who we're creating certs for
+    if urlparse(event['stsurl']).netloc.lower() != 'sts.amazonaws.com':
+        # Prevent people forging certs by sending requests to attacker-controlled hosts
+        return "'stsurl' must use 'sts.amazonaws.com'"
+    sts_response = requests.post(event['stsurl'])
+    tree = ET.fromstring(sts_response.content)
+    full_user_id = tree.find('.//{https://sts.amazonaws.com/doc/2011-06-15/}UserId').text
+
     cert_fields = CertificateFields(
         serial=0,
         cert_type=1,
-        key_id="someuser@somehost",
+        key_id="someuser@somehost", #todo fix
         principals=[],
         valid_after=datetime.now(),
         valid_before=datetime.now() + timedelta(minutes=duration),
@@ -45,18 +54,15 @@ def handler(event, context):
         ],
     )
 
-    # Use STS to get authoritive data on who we're creating certs for
-    if urlparse(event['stsurl']).netloc.lower() != 'sts.amazonaws.com':
-        # Prevent people forging certs by sending requests to attacker-controlled hosts
-        return "'stsurl' must use 'sts.amazonaws.com'"
-    sts_response = requests.post(event['stsurl'])
-    tree = ET.fromstring(sts_response.content)
-    full_user_id = tree.find('.//{https://sts.amazonaws.com/doc/2011-06-15/}UserId').text
     cert_fields.principals.value.append(full_user_id)
+    cert_fields.key_id.value = full_user_id
+
     if SHARED_USER is not None:
         cert_fields.principals.value.append(SHARED_USER)
     try:
         cert_fields.principals.value.append(full_user_id.split(':')[1])
+        if USE_FRIENDLY:
+            cert_fields.key_id.value=full_user_id.split(':')[1]
     except:
         # Must not be an identity center user?
         pass
@@ -71,4 +77,5 @@ def handler(event, context):
         fields=cert_fields,
     )
     certificate.sign()
+    # TODO log cert fingerpring
     return certificate.to_string()

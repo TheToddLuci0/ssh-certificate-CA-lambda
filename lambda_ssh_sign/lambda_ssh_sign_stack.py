@@ -18,6 +18,7 @@ class LambdaSshSignStack(Stack):
         # The code that defines your stack goes here
         arn = CfnParameter(self, "secret-arn", type='String')
         timer = self.node.try_get_context('max_token_lifetime')
+        shared_user = self.node.try_get_context('shared_user_account_name')
 
         keys = secretsmanager.Secret.from_secret_complete_arn(self, id="CAKeysSecret", secret_complete_arn=arn.value_as_string)
         
@@ -32,7 +33,8 @@ class LambdaSshSignStack(Stack):
             params_and_secrets=params_and_secrets, 
             environment={
                 "SecretARN": arn.value_as_string,
-                "MAX_VALID_MINUTES": str(timer)
+                "MAX_VALID_MINUTES": str(timer),
+                "SHARED_USER_ID": str(shared_user)
                 },
             timeout=Duration.seconds(30)
             )

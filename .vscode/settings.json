@@ -2,5 +2,8 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.python"
     },
-    "python.formatting.provider": "none"
+    "python.formatting.provider": "none",
+    "python.analysis.extraPaths": [
+        "./cdk.out/asset.97bdf51cfd815ad0e3e7d784c1fc063b1a202e29335217862f138314a2782b4f/python"
+    ]
 }
