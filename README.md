@@ -8,7 +8,7 @@ That just leaves one problem: how to sign the cert? That's where this comes in.
 
 ## Deploying
 
-Note: you need to deploy a secret manager secret with the CA keys in it first.
+Note: you need to deploy a KMS key with the CA key in it first.
 
 ```json
 {
@@ -17,7 +17,7 @@ Note: you need to deploy a secret manager secret with the CA keys in it first.
 }
 ```
 
-Once you have that it's as simple as running `cdk deploy --parameters secretarn=arn:aws:....`
+Once you have that it's as simple as running `cdk deploy -c kms_key_arn=arn:aws:....`
 
 Note: The parameter is only required the first time you deploy. After that, you can apply updates with just `cdk deploy`
 
@@ -53,9 +53,9 @@ The lambda uses that to pull their info from sts directly.
 The only way to bypass this is to pwn another user, get a valid STS url for that user, and pass that in. Mitigating that is a problem for your IT SEC team, not this tool.
 
 ### The default 24 hr cert is too long/short, how do I change it?
-Use the cdk context var `max_token_lifetime`. You can either put it in `cdk.json` (not reccommended) or pass it with `-c max_token_lifetime=60`. Value is in minutes.
+Use the cdk context var `max_token_lifetime`. You can either put it in `cdk.json` or pass it with `-c max_token_lifetime=60`. Value is in minutes.
 
-### Why don't you just create the Secrets MAnager secret for me?
+### Why don't you just create the KMS Key for me?
 Because I don't want to be responsible if something goes wrong with an update, you decide to undeploy, or any other wacky thing goes wrong and your private key goes poof. This way, removing the key is a concious decision by you, not an automated thing by some guy on the internet.
 
 # TODO

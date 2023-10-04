@@ -4,7 +4,7 @@ from aws_cdk import (
     # aws_sqs as sqs,
     CfnParameter,
     Duration,
-    aws_secretsmanager as secretsmanager,
+    aws_kms as kms,
     aws_lambda as lambda_,
     aws_lambda_python_alpha as pylambda
 )
@@ -16,11 +16,10 @@ class LambdaSshSignStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         # The code that defines your stack goes here
-        arn = CfnParameter(self, "secret-arn", type='String')
         timer = self.node.try_get_context('max_token_lifetime')
         shared_user = self.node.try_get_context('shared_user_account_name')
 
-        keys = secretsmanager.Secret.from_secret_complete_arn(self, id="CAKeysSecret", secret_complete_arn=arn.value_as_string)
+        key = kms.Key.from_key_arn(scope=self, id="CAKey", key_arn=self.node.try_get_context('kms_key_arn'))
         
         # Lambda
         params_and_secrets = lambda_.ParamsAndSecretsLayerVersion.from_version(lambda_.ParamsAndSecretsVersions.V1_0_103,
@@ -32,7 +31,7 @@ class LambdaSshSignStack(Stack):
             layers=[layer] ,runtime=lambda_.Runtime.PYTHON_3_11, index="signinglambda.py", 
             params_and_secrets=params_and_secrets, 
             environment={
-                "SecretARN": arn.value_as_string,
+                "KMS_KEY_ARN": key.key_arn,
                 "MAX_VALID_MINUTES": str(timer),
                 "SHARED_USER_ID": str(shared_user)
                 },
@@ -40,4 +39,4 @@ class LambdaSshSignStack(Stack):
             )
 
         # Perms
-        keys.grant_read(func)
+        key.grant(func, 'kms:Sign')
