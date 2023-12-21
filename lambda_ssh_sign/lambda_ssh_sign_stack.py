@@ -26,15 +26,17 @@ class LambdaSshSignStack(Stack):
             cache_size=500,
             log_level=lambda_.ParamsAndSecretsLogLevel.DEBUG
         )
+        environment={
+            "KMS_KEY_ARN": key.key_arn,
+            "MAX_VALID_MINUTES": str(timer)
+            }
+        if shared_user is not None:
+            environment['SHARED_USER_ID'] = str(shared_user)
         layer = pylambda.PythonLayerVersion(self, "MyLayer", entry="./lambda_layer/", compatible_runtimes=[lambda_.Runtime.PYTHON_3_11])
         func = pylambda.PythonFunction(self, "SSH-Key-Signer", entry="./lambda_source/", 
             layers=[layer] ,runtime=lambda_.Runtime.PYTHON_3_11, index="signinglambda.py", 
             params_and_secrets=params_and_secrets, 
-            environment={
-                "KMS_KEY_ARN": key.key_arn,
-                "MAX_VALID_MINUTES": str(timer),
-                "SHARED_USER_ID": str(shared_user)
-                },
+            environment=environment,
             timeout=Duration.seconds(30)
             )
 
