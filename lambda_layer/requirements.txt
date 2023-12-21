@@ -17,5 +17,5 @@ requests==2.31.0
 s3transfer==0.6.1
 six==1.16.0
 sshkey-tools==0.10.1
-urllib3==1.26.17
+urllib3==1.26.18
 wcwidth==0.2.6
